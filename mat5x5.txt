@@ -1,26 +1,40 @@
-5 5
-R B B G
-B R B G
-R G R R
-B G G B
-G G G G
-R B G R
-R B B B
-G R R B
-G R R B
-G B R B
-G B R B
-G B G G
-G B G G
-G G R B
-G B R R
-G B B G
-B G B B
-G B G B
-R R B R
-R R G B
-B B G G
-B B G R
-R G G B
-B R G B
-G G G R
+
+    // bool vPosition( Tuile chess, int position) {
+       
+    //    if(position==0  &&  chess.top != chess.left){
+    //         return false;
+    //    }
+
+    //    if(position!=0 &&  position < N && chess.top != T[position -1].top){
+           
+    //         return false;
+           
+    //    }
+
+    //     if (position % N == 0 && position != 0 && chess.left != T[position - N].left) {
+    //         return false;
+    //     }
+
+    //     if(position % N==N-1 && position >= N &&chess.right != T[position-N].right ){
+    //         return false;
+    //     }
+    //     if (position == N*N -N && chess.left !=chess.bottom){
+    //         return false;
+    //     }
+
+    //     if (position > N*N - N && position < N*N &&chess.bottom != T[position-1].bottom ){
+    //         return false;
+    //     }
+
+    //     if (position - N >= 0) {
+    //         if (chess.top != T[position - N].bottom) {
+    //             return false;
+    //         }
+    //     }
+    //     if (position % N != 0 && position != 0) {
+    //         if (chess.left != T[position - 1].right) {
+    //             return false;
+    //         }
+    //     }
+    //     return true;
+    // }
