@@ -5,6 +5,7 @@
 #include <mutex>
 #include <random>
 #include <algorithm>
+#include<atomic>
 
 using namespace std;
 
@@ -36,24 +37,19 @@ public:
 class MacMah {
 public:
     int N;
-    int taille =N*N;
-    vector<Tuile>puzzle;
-    vector<Tuile>T;
+    
+    Tuile *puzzle;
+    Tuile T[100];
     vector<thread> threads;
     mutex m;
     bool success;
-    MacMah(int N, vector<Tuile> puzzle) {
-        this->N = N;
-        for (int i = 0; i <  N* N; ++i) {
-            this->puzzle[i] = puzzle[i];
-        }
+
+    MacMah(int N, Tuile *puzzle) {
+        this->N=N;
+        this->puzzle=puzzle;
     }
 
-
-
-  
-
-     bool vPosition(vector<Tuile> table, Tuile chess, int position) {
+     bool vPosition(Tuile table[100], Tuile chess, int position) {
        
         if(position==0  &&  chess.top != chess.left){
             return false;
@@ -93,68 +89,7 @@ public:
         return true;
     }
 
-      bool backtrackingSequentielle(vector<Tuile> table, int position) {
-        if (position == N * N) {
-            affichage(table);
-            return true;
-        }
-
-        for (int i = 0; i < N * N; ++i) {
-            if (!puzzle[i].dejaUtiliser) {
-                if (vPosition(table, puzzle[i], position)) {
-                    puzzle[i].dejaUtiliser = true;
-                    table[position] = puzzle[i];
-                    if (backtrackingSequentielle(table, position + 1)) {
-                        return true;
-                    }
-                    puzzle[i].dejaUtiliser = false;
-                }
-            }
-        }
-        return false;
-    }
-
-
-vector<Tuile> shuffleTuile(){
-
-    std::random_shuffle(std::begin(puzzle), std::end(puzzle));
-    return puzzle;
-
-}
-
-
-void macmahonParallele(int position) {
-   
-    std::vector<std::thread> workerThreads(N);
-
-    for (int t = 0; t < N; ++t) {
-        workerThreads[t]=std::thread(&MacMah::backtrackingSequentielle,this,shuffleTuile(),position);
-    }
-
-    for (int t = 0; t < N; t++) {
-        workerThreads[t].join();
-    }
-
-    
-}
-
-// void workerFunction(int position) {
-//     for (int k = 0; k < N; ++k) {
-//         if (!puzzle[k].dejaUtiliser && vPosition(puzzle[k], position)) {
-//             puzzle[k].dejaUtiliser = true;
-//             T[position] = puzzle[k];
-
-//             if (backtrackingSequentielle( position+1)) {
-//                 std::lock_guard<std::mutex> lock(m);
-//                 success = true;
-//             }
-
-//             puzzle[k].dejaUtiliser = false;
-//         }
-//     }
-// }
-
-   void affichage(vector<Tuile> table) {
+    void affichage(Tuile table[100]) {
         for (int i = 0; i < N; ++i) {
             
             for (int k = 0; k < N; k++) {
@@ -172,19 +107,88 @@ void macmahonParallele(int position) {
         }
     }
 
+bool backtrackingSequentielle(Tuile *plateau, Tuile localT[100], int position) {
+ 
+
+    if(reussi){
+     cout << "Thread ID: " << std::this_thread::get_id() << ", Position: " << position << endl;
+     return true;
+
+    }
+    if (position == N * N) {
+        
+        if(!reussi){
+            m.lock();
+            reussi=true;
+            affichage(localT);
+            m.unlock();
+
+        }
+        
+        return true;
+    }
+
+    for (int i = 0; i < N * N; ++i) {
+        if (!plateau[i].dejaUtiliser) {
+            if (vPosition(localT, plateau[i], position)) {
+                plateau[i].dejaUtiliser = true;
+                localT[position] = plateau[i];
+                
+                if (backtrackingSequentielle(plateau, localT, position + 1)) {
+                    return true;
+                }
+                plateau[i].dejaUtiliser = false;
+            }
+        }
+    }
+    return false;
+}
+
+
+
+Tuile* shuffleTuile() {
+    Tuile* shuffled = new Tuile[N * N];
+    std::copy(puzzle, puzzle + N * N, shuffled);
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    std::shuffle(shuffled, shuffled + N * N, g);
+
+    return shuffled;
+}
+
+
+
+std::atomic<bool> reussi =false;
+
+void macmahonParallele(int position) {
+    //std::vector<std::thread> workerThreads(N);
+   
+    for (int t = 0; t < N*N; ++t) {
+        Tuile localT[100];
+        threads.push_back(std::thread(&MacMah::backtrackingSequentielle,this,shuffleTuile(),localT, position));
+    }
+
+    for (int t = 0; t < N*N; t++) {
+        threads[t].join();
+    }
+}
 
 };
 
-int main(int argc, char** argv) {
-    ifstream file("mat6x6.txt");
+int main(int argc, char **argv) {
+    ifstream file("mat5x5.txt");
     char left, top, right, bottom;
     int N;
-    vector<Tuile> puzzle;
+    Tuile *puzzle;  
     Tuile c;
 
     if (file) {
         file >> N;
         file >> N;
+
+        puzzle = new Tuile[N * N];
 
         for (int i = 0; i < N * N; ++i) {
             file >> left;
@@ -194,7 +198,7 @@ int main(int argc, char** argv) {
 
             c.setValue(left, top, right, bottom);
 
-            puzzle.push_back(c);
+            puzzle[i] =c;
         }
 
         file.close();
@@ -202,15 +206,16 @@ int main(int argc, char** argv) {
 
     MacMah MacMah(N, puzzle);
 
-   
-    cout <<"Choisissez - P - pour paralléle OU -S- pour sequentielle \n";
-    string choix ;
-    cin>> choix;
-    if(choix=="P"){
+    cout << "Choisissez - P - pour paralléle OU -S- pour sequentielle \n";
+    string choix;
+    cin >> choix;
+    if (choix == "P") {
         MacMah.macmahonParallele(0);
-    }else if(choix=="S"){
-        MacMah.backtrackingSequentielle(MacMah.T,0);
+    } else if (choix == "S") {
+        MacMah.backtrackingSequentielle(puzzle, MacMah.T, 0);
     }
+
+    
 
     return 0;
 }
